@@ -72,6 +72,8 @@ gulp.task('build:browser', ['build:node'], function() {
 
   return browserify(customOpts)
     .exclude('marsdb')
+    .exclude('marsdb-react')
+    .exclude('react-router')
     .exclude('react')
     .bundle()
     .pipe(source(config.browser.bundleName))

@@ -24,16 +24,13 @@
     "url": "git+ssh://git@github.com/c58/marsdb-react-router.git"
   },
   "dependencies": {
-    "core-js": "^2.0.0",
-    "fast.js": "^0.1.1",
     "invariant": "^2.2.0",
-    "keymirror": "^0.1.1",
-    "marsdb": "^0.5.3",
-    "marsdb-react": "^0.0.1",
+    "marsdb-react": "^0.0.2",
     "react": "^0.14.5",
     "react-router": "^2.0.0-rc4"
   },
   "devDependencies": {
+    "core-js": "^2.0.0",
     "babel-cli": "^6.3.17",
     "babel-eslint": "^5.0.0-beta6",
     "babel-preset-es2015": "^6.3.13",
