@@ -1,0 +1,38 @@
+{
+  "name": "marsdb-react-router",
+  "description": "MarsDB-React integration for React Router",
+  "main": "index.js",
+  "authors": [
+    "Artem Artemev"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "mongo",
+    "minimongo",
+    "embedded",
+    "react",
+    "db",
+    "database",
+    "meteor",
+    "router",
+    "react-router",
+    "marsdb"
+  ],
+  "homepage": "https://github.com/c58/marsdb-react",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:c58/marsdb-react.git"
+  },
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
