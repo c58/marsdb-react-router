@@ -12,8 +12,6 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
-var _reactRouter = require('react-router');
-
 var _getParamsForRoute = require('./getParamsForRoute');
 
 var _getParamsForRoute2 = _interopRequireDefault(_getParamsForRoute);
@@ -48,7 +46,7 @@ var MarsRouter = function (_React$Component) {
   }, {
     key: 'render',
     value: function render() {
-      return _react2.default.createElement(_reactRouter.Router, _extends({}, this.props, {
+      return _react2.default.createElement(Router, _extends({}, this.props, {
         createElement: this.createElement
       }));
     }
