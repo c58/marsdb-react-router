@@ -1,1 +1,1 @@
-module.exports = require('./dist/MarsRouter').default;
+module.exports = require('./dist/QueryResolverContext').default;

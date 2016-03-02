@@ -22,10 +22,6 @@ var _getParamsForRoute = require('./getParamsForRoute');
 
 var _getParamsForRoute2 = _interopRequireDefault(_getParamsForRoute);
 
-var _reactStaticContainer = require('react-static-container');
-
-var _reactStaticContainer2 = _interopRequireDefault(_reactStaticContainer);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -166,7 +162,7 @@ var QueryResolverContext = function (_React$Component2) {
         var InnerContext = this.props.InnerContext;
 
         return _react2.default.createElement(
-          _reactStaticContainer2.default,
+          StaticContainer,
           { shouldUpdate: this._ready },
           _react2.default.createElement(InnerContext, _extends({}, this.state.usedProps, {
             createElement: this._createElement
@@ -196,7 +192,6 @@ var _initialiseProps = function _initialiseProps() {
       var containerParams = (0, _getParamsForRoute2.default)(props);
       var data = _this4.state.result.get(Component) || {};
       return _react2.default.createElement(QueryTrackerComponent, {
-        key: Math.random(),
         query: query,
         providedProps: _extends({}, props, containerParams, data),
         Component: Component

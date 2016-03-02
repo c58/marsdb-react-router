@@ -5,6 +5,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -13,11 +15,13 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _RouterContext = require('react-router/lib/RouterContext');
+
+var _RouterContext2 = _interopRequireDefault(_RouterContext);
+
 var _getParamsForRoute = require('./getParamsForRoute');
 
 var _getParamsForRoute2 = _interopRequireDefault(_getParamsForRoute);
-
-var _marsdbReact = require('marsdb-react');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -27,38 +31,178 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var MarsRouter = function (_React$Component) {
-  _inherits(MarsRouter, _React$Component);
+var QueryTrackerComponent = function (_React$Component) {
+  _inherits(QueryTrackerComponent, _React$Component);
 
-  function MarsRouter() {
-    _classCallCheck(this, MarsRouter);
+  function QueryTrackerComponent() {
+    var _Object$getPrototypeO;
 
-    return _possibleConstructorReturn(this, Object.getPrototypeOf(MarsRouter).apply(this, arguments));
+    var _temp, _this, _ret;
+
+    _classCallCheck(this, QueryTrackerComponent);
+
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(QueryTrackerComponent)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this._handleDataUpdate = function () {
+      _this.forceUpdate();
+    }, _temp), _possibleConstructorReturn(_this, _ret);
   }
 
-  _createClass(MarsRouter, [{
-    key: 'createElement',
-    value: function createElement(Component, props) {
-      var containerParams = (0, _getParamsForRoute2.default)(props);
-      return _react2.default.createElement(_marsdbReact.DataManagerContainer, _extends({}, props, containerParams, {
-        component: Component
-      }));
+  _createClass(QueryTrackerComponent, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      this.props.query.on('update', this._handleDataUpdate);
+    }
+  }, {
+    key: 'componentWillUnmount',
+    value: function componentWillUnmount() {
+      this.props.query.removeListener('update', this._handleDataUpdate);
     }
   }, {
     key: 'render',
     value: function render() {
-      return _react2.default.createElement(Router, _extends({}, this.props, {
-        createElement: this.createElement
-      }));
+      var _props = this.props;
+      var providedProps = _props.providedProps;
+      var Component = _props.Component;
+
+      return _react2.default.createElement(Component, providedProps);
     }
   }]);
 
-  return MarsRouter;
+  return QueryTrackerComponent;
 }(_react2.default.Component);
 
-MarsRouter.displayName = 'MarsRouter';
-exports.default = MarsRouter;
-},{"./getParamsForRoute":2,"marsdb-react":undefined,"react":undefined}],2:[function(require,module,exports){
+var QueryResolverContext = function (_React$Component2) {
+  _inherits(QueryResolverContext, _React$Component2);
+
+  function QueryResolverContext(props, context) {
+    _classCallCheck(this, QueryResolverContext);
+
+    var _this2 = _possibleConstructorReturn(this, Object.getPrototypeOf(QueryResolverContext).call(this, props, context));
+
+    _initialiseProps.call(_this2);
+
+    _this2.state = { result: {}, usedProps: {} };
+    _this2._queryMap = new Map();
+    _this2._ensureQueries(props);
+    return _this2;
+  }
+
+  _createClass(QueryResolverContext, [{
+    key: 'componentWillReceiveProps',
+    value: function componentWillReceiveProps(nextProps) {
+      this._ensureQueries(nextProps);
+    }
+  }, {
+    key: '_ensureQueries',
+    value: function _ensureQueries(props) {
+      var _this3 = this;
+
+      this._ready = false;
+      var unusedComponentsSet = new Set(this._queryMap.keys());
+      var routes = props.routes;
+      var components = props.components;
+
+      // Execute new queries or update existing
+
+      var executePromises = components.map(function (c, i) {
+        if (c && c.getQuery) {
+          var route = routes[i];
+          var params = (0, _getParamsForRoute2.default)(_extends({ route: route }, props));
+
+          if (!_this3._queryMap.has(c)) {
+            var query = c.getQuery(params);
+            _this3._queryMap.set(c, query);
+            return query.execute();
+          } else {
+            var _ret2 = function () {
+              unusedComponentsSet.delete(c);
+              var query = _this3._queryMap.get(c);
+              return {
+                v: query.updateVariables(params).then(function () {
+                  return query.execute();
+                })
+              };
+            }();
+
+            if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
+          }
+        }
+      });
+
+      // Stop and remove not used queries
+      unusedComponentsSet.forEach(function (c) {
+        _this3._queryMap.get(c).stop();
+        _this3._queryMap.delete(c);
+      });
+
+      // Set result when ready
+      Promise.all(executePromises).then(function (result) {
+        _this3._firstReady = true;
+        _this3._ready = true;
+
+        var resultMap = new Map();
+        result.forEach(function (x, i) {
+          resultMap.set(components[i], x);
+        });
+
+        _this3.setState({
+          result: resultMap,
+          usedProps: props
+        });
+      });
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      if (!this._firstReady) {
+        return this.props.loadingPlaceholder;
+      } else {
+        var InnerContext = this.props.InnerContext;
+
+        return _react2.default.createElement(
+          StaticContainer,
+          { shouldUpdate: this._ready },
+          _react2.default.createElement(InnerContext, _extends({}, this.state.usedProps, {
+            createElement: this._createElement
+          }))
+        );
+      }
+    }
+  }]);
+
+  return QueryResolverContext;
+}(_react2.default.Component);
+
+QueryResolverContext.defaultProps = {
+  loadingPlaceholder: _react2.default.createElement('div', null),
+  InnerContext: _RouterContext2.default
+};
+
+var _initialiseProps = function _initialiseProps() {
+  var _this4 = this;
+
+  this._createElement = function (Component, props) {
+    var query = _this4._queryMap.get(Component);
+
+    if (!query) {
+      return _react2.default.createElement(Component, props);
+    } else {
+      var containerParams = (0, _getParamsForRoute2.default)(props);
+      var data = _this4.state.result.get(Component) || {};
+      return _react2.default.createElement(QueryTrackerComponent, {
+        query: query,
+        providedProps: _extends({}, props, containerParams, data),
+        Component: Component
+      });
+    }
+  };
+};
+
+exports.default = QueryResolverContext;
+},{"./getParamsForRoute":2,"react":undefined,"react-router/lib/RouterContext":8}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -142,10 +286,10 @@ function getParamsForRoute(_ref) {
 
   return paramsForRoute;
 }
-},{"invariant":4,"react-router/lib/getRouteParams":7}],3:[function(require,module,exports){
-module.exports = require('./dist/MarsRouter').default;
+},{"invariant":4,"react-router/lib/getRouteParams":10}],3:[function(require,module,exports){
+module.exports = require('./dist/QueryResolverContext').default;
 
-},{"./dist/MarsRouter":1}],4:[function(require,module,exports){
+},{"./dist/QueryResolverContext":1}],4:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -522,6 +666,340 @@ function formatPattern(pattern, params) {
 }
 }).call(this,require('_process'))
 },{"_process":5,"invariant":4}],7:[function(require,module,exports){
+(function (process){
+'use strict';
+
+exports.__esModule = true;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.isReactChildren = isReactChildren;
+exports.createRouteFromReactElement = createRouteFromReactElement;
+exports.createRoutesFromReactChildren = createRoutesFromReactChildren;
+exports.createRoutes = createRoutes;
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _routerWarning = require('./routerWarning');
+
+var _routerWarning2 = _interopRequireDefault(_routerWarning);
+
+function isValidChild(object) {
+  return object == null || _react2['default'].isValidElement(object);
+}
+
+function isReactChildren(object) {
+  return isValidChild(object) || Array.isArray(object) && object.every(isValidChild);
+}
+
+function checkPropTypes(componentName, propTypes, props) {
+  componentName = componentName || 'UnknownComponent';
+
+  for (var propName in propTypes) {
+    if (propTypes.hasOwnProperty(propName)) {
+      var error = propTypes[propName](props, propName, componentName);
+
+      /* istanbul ignore if: error logging */
+      if (error instanceof Error) process.env.NODE_ENV !== 'production' ? _routerWarning2['default'](false, error.message) : undefined;
+    }
+  }
+}
+
+function createRoute(defaultProps, props) {
+  return _extends({}, defaultProps, props);
+}
+
+function createRouteFromReactElement(element) {
+  var type = element.type;
+  var route = createRoute(type.defaultProps, element.props);
+
+  if (type.propTypes) checkPropTypes(type.displayName || type.name, type.propTypes, route);
+
+  if (route.children) {
+    var childRoutes = createRoutesFromReactChildren(route.children, route);
+
+    if (childRoutes.length) route.childRoutes = childRoutes;
+
+    delete route.children;
+  }
+
+  return route;
+}
+
+/**
+ * Creates and returns a routes object from the given ReactChildren. JSX
+ * provides a convenient way to visualize how routes in the hierarchy are
+ * nested.
+ *
+ *   import { Route, createRoutesFromReactChildren } from 'react-router'
+ *   
+ *   const routes = createRoutesFromReactChildren(
+ *     <Route component={App}>
+ *       <Route path="home" component={Dashboard}/>
+ *       <Route path="news" component={NewsFeed}/>
+ *     </Route>
+ *   )
+ *
+ * Note: This method is automatically used when you provide <Route> children
+ * to a <Router> component.
+ */
+
+function createRoutesFromReactChildren(children, parentRoute) {
+  var routes = [];
+
+  _react2['default'].Children.forEach(children, function (element) {
+    if (_react2['default'].isValidElement(element)) {
+      // Component classes may have a static create* method.
+      if (element.type.createRouteFromReactElement) {
+        var route = element.type.createRouteFromReactElement(element, parentRoute);
+
+        if (route) routes.push(route);
+      } else {
+        routes.push(createRouteFromReactElement(element));
+      }
+    }
+  });
+
+  return routes;
+}
+
+/**
+ * Creates and returns an array of routes from the given object which
+ * may be a JSX route, a plain object route, or an array of either.
+ */
+
+function createRoutes(routes) {
+  if (isReactChildren(routes)) {
+    routes = createRoutesFromReactChildren(routes);
+  } else if (routes && !Array.isArray(routes)) {
+    routes = [routes];
+  }
+
+  return routes;
+}
+}).call(this,require('_process'))
+},{"./routerWarning":11,"_process":5,"react":undefined}],8:[function(require,module,exports){
+(function (process){
+'use strict';
+
+exports.__esModule = true;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _invariant = require('invariant');
+
+var _invariant2 = _interopRequireDefault(_invariant);
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _deprecateObjectProperties = require('./deprecateObjectProperties');
+
+var _deprecateObjectProperties2 = _interopRequireDefault(_deprecateObjectProperties);
+
+var _getRouteParams = require('./getRouteParams');
+
+var _getRouteParams2 = _interopRequireDefault(_getRouteParams);
+
+var _RouteUtils = require('./RouteUtils');
+
+var _routerWarning = require('./routerWarning');
+
+var _routerWarning2 = _interopRequireDefault(_routerWarning);
+
+var _React$PropTypes = _react2['default'].PropTypes;
+var array = _React$PropTypes.array;
+var func = _React$PropTypes.func;
+var object = _React$PropTypes.object;
+
+/**
+ * A <RouterContext> renders the component tree for a given router state
+ * and sets the history object and the current location in context.
+ */
+var RouterContext = _react2['default'].createClass({
+  displayName: 'RouterContext',
+
+  propTypes: {
+    history: object,
+    router: object.isRequired,
+    location: object.isRequired,
+    routes: array.isRequired,
+    params: object.isRequired,
+    components: array.isRequired,
+    createElement: func.isRequired
+  },
+
+  getDefaultProps: function getDefaultProps() {
+    return {
+      createElement: _react2['default'].createElement
+    };
+  },
+
+  childContextTypes: {
+    history: object,
+    location: object.isRequired,
+    router: object.isRequired
+  },
+
+  getChildContext: function getChildContext() {
+    var _props = this.props;
+    var router = _props.router;
+    var history = _props.history;
+    var location = _props.location;
+
+    if (!router) {
+      process.env.NODE_ENV !== 'production' ? _routerWarning2['default'](false, '`<RouterContext>` expects a `router` rather than a `history`') : undefined;
+
+      router = _extends({}, history, {
+        setRouteLeaveHook: history.listenBeforeLeavingRoute
+      });
+      delete router.listenBeforeLeavingRoute;
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      location = _deprecateObjectProperties2['default'](location, '`context.location` is deprecated, please use a route component\'s `props.location` instead. http://tiny.cc/router-accessinglocation');
+    }
+
+    return { history: history, location: location, router: router };
+  },
+
+  createElement: function createElement(component, props) {
+    return component == null ? null : this.props.createElement(component, props);
+  },
+
+  render: function render() {
+    var _this = this;
+
+    var _props2 = this.props;
+    var history = _props2.history;
+    var location = _props2.location;
+    var routes = _props2.routes;
+    var params = _props2.params;
+    var components = _props2.components;
+
+    var element = null;
+
+    if (components) {
+      element = components.reduceRight(function (element, components, index) {
+        if (components == null) return element; // Don't create new children; use the grandchildren.
+
+        var route = routes[index];
+        var routeParams = _getRouteParams2['default'](route, params);
+        var props = {
+          history: history,
+          location: location,
+          params: params,
+          route: route,
+          routeParams: routeParams,
+          routes: routes
+        };
+
+        if (_RouteUtils.isReactChildren(element)) {
+          props.children = element;
+        } else if (element) {
+          for (var prop in element) {
+            if (element.hasOwnProperty(prop)) props[prop] = element[prop];
+          }
+        }
+
+        if (typeof components === 'object') {
+          var elements = {};
+
+          for (var key in components) {
+            if (components.hasOwnProperty(key)) {
+              // Pass through the key as a prop to createElement to allow
+              // custom createElement functions to know which named component
+              // they're rendering, for e.g. matching up to fetched data.
+              elements[key] = _this.createElement(components[key], _extends({
+                key: key }, props));
+            }
+          }
+
+          return elements;
+        }
+
+        return _this.createElement(components, props);
+      }, element);
+    }
+
+    !(element === null || element === false || _react2['default'].isValidElement(element)) ? process.env.NODE_ENV !== 'production' ? _invariant2['default'](false, 'The root route must render a single element') : _invariant2['default'](false) : undefined;
+
+    return element;
+  }
+
+});
+
+exports['default'] = RouterContext;
+module.exports = exports['default'];
+}).call(this,require('_process'))
+},{"./RouteUtils":7,"./deprecateObjectProperties":9,"./getRouteParams":10,"./routerWarning":11,"_process":5,"invariant":4,"react":undefined}],9:[function(require,module,exports){
+(function (process){
+/*eslint no-empty: 0*/
+'use strict';
+
+exports.__esModule = true;
+exports['default'] = deprecateObjectProperties;
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _routerWarning = require('./routerWarning');
+
+var _routerWarning2 = _interopRequireDefault(_routerWarning);
+
+var useMembrane = false;
+
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    if (Object.defineProperty({}, 'x', { get: function get() {
+        return true;
+      } }).x) {
+      useMembrane = true;
+    }
+  } catch (e) {}
+}
+
+// wraps an object in a membrane to warn about deprecated property access
+
+function deprecateObjectProperties(object, message) {
+  if (!useMembrane) return object;
+
+  var membrane = {};
+
+  var _loop = function (prop) {
+    if (typeof object[prop] === 'function') {
+      membrane[prop] = function () {
+        process.env.NODE_ENV !== 'production' ? _routerWarning2['default'](false, message) : undefined;
+        return object[prop].apply(object, arguments);
+      };
+    } else {
+      Object.defineProperty(membrane, prop, {
+        configurable: false,
+        enumerable: false,
+        get: function get() {
+          process.env.NODE_ENV !== 'production' ? _routerWarning2['default'](false, message) : undefined;
+          return object[prop];
+        }
+      });
+    }
+  };
+
+  for (var prop in object) {
+    _loop(prop);
+  }
+
+  return membrane;
+}
+
+module.exports = exports['default'];
+}).call(this,require('_process'))
+},{"./routerWarning":11,"_process":5}],10:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -546,5 +1024,92 @@ function getRouteParams(route, params) {
 
 exports['default'] = getRouteParams;
 module.exports = exports['default'];
-},{"./PatternUtils":6}]},{},[3])(3)
+},{"./PatternUtils":6}],11:[function(require,module,exports){
+(function (process){
+'use strict';
+
+exports.__esModule = true;
+exports['default'] = routerWarning;
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _warning = require('warning');
+
+var _warning2 = _interopRequireDefault(_warning);
+
+function routerWarning(falseToWarn, message) {
+  message = '[react-router] ' + message;
+
+  for (var _len = arguments.length, args = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  process.env.NODE_ENV !== 'production' ? _warning2['default'].apply(undefined, [falseToWarn, message].concat(args)) : undefined;
+}
+
+module.exports = exports['default'];
+}).call(this,require('_process'))
+},{"_process":5,"warning":12}],12:[function(require,module,exports){
+/**
+ * Copyright 2014-2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
+
+'use strict';
+
+/**
+ * Similar to invariant but only logs a warning if the condition is not met.
+ * This can be used to log issues in development environments in critical
+ * paths. Removing the logging code for production environments will keep the
+ * same logic and follow the same code paths.
+ */
+
+var warning = function() {};
+
+if ("production" !== 'production') {
+  warning = function(condition, format, args) {
+    var len = arguments.length;
+    args = new Array(len > 2 ? len - 2 : 0);
+    for (var key = 2; key < len; key++) {
+      args[key - 2] = arguments[key];
+    }
+    if (format === undefined) {
+      throw new Error(
+        '`warning(condition, format, ...args)` requires a warning ' +
+        'message argument'
+      );
+    }
+
+    if (format.length < 10 || (/^[s\W]*$/).test(format)) {
+      throw new Error(
+        'The warning format should be able to uniquely identify this ' +
+        'warning. Please, use a more descriptive format than: ' + format
+      );
+    }
+
+    if (!condition) {
+      var argIndex = 0;
+      var message = 'Warning: ' +
+        format.replace(/%s/g, function() {
+          return args[argIndex++];
+        });
+      if (typeof console !== 'undefined') {
+        console.error(message);
+      }
+      try {
+        // This error was thrown as a convenience so that you can use this stack
+        // to find the callsite that caused this warning to fire.
+        throw new Error(message);
+      } catch(x) {}
+    }
+  };
+}
+
+module.exports = warning;
+
+},{}]},{},[3])(3)
 });

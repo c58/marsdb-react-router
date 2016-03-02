@@ -1,6 +1,6 @@
 {
   "name": "marsdb-react-router",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Artem Artemev <art@studytime.me>",
   "contributors": [
     "Artem Artemev"
@@ -24,8 +24,7 @@
     "url": "git+ssh://git@github.com/c58/marsdb-react-router.git"
   },
   "dependencies": {
-    "invariant": "^2.2.0",
-    "react-static-container": "^1.0.0"
+    "invariant": "^2.2.0"
   },
   "peerDependencies": {
     "react": "0.14.x",
